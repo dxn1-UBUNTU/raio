@@ -1,0 +1,4 @@
+loot/
+/tmp/recon_*
+*.log
+.DS_Store
