@@ -1,4 +1,23 @@
-# recon.sh — One-Command Cybersecurity Recon Suite
+<div align="center">
+
+# RAIO
+
+### *Recon All In One*
+### *The only command you run after finding an IP.*
+
+[![Stars](https://img.shields.io/github/stars/dxn1-UBUNTU/raio?style=for-the-badge&logo=github&color=yellow)](https://github.com/dxn1-UBUNTU/raio/stargazers)
+[![Forks](https://img.shields.io/github/forks/dxn1-UBUNTU/raio?style=for-the-badge&logo=github&color=blue)](https://github.com/dxn1-UBUNTU/raio/network/members)
+[![Issues](https://img.shields.io/github/issues/dxn1-UBUNTU/raio?style=for-the-badge&logo=github&color=red)](https://github.com/dxn1-UBUNTU/raio/issues)
+[![License](https://img.shields.io/github/license/dxn1-UBUNTU/raio?style=for-the-badge&color=green)](https://github.com/dxn1-UBUNTU/raio/blob/main/LICENSE)
+[![Last Commit](https://img.shields.io/github/last-commit/dxn1-UBUNTU/raio?style=for-the-badge&color=purple)](https://github.com/dxn1-UBUNTU/raio/commits/main)
+[![Repo Size](https://img.shields.io/github/repo-size/dxn1-UBUNTU/raio?style=for-the-badge&color=orange)](https://github.com/dxn1-UBUNTU/raio)
+[![Bash](https://img.shields.io/badge/made%20with-Bash-1f425f?style=for-the-badge&logo=gnubash&logoColor=white)](https://www.gnu.org/software/bash/)
+[![Platform](https://img.shields.io/badge/platform-Linux%20%2F%20macOS-2ea44f?style=for-the-badge)](https://github.com/dxn1-UBUNTU/raio)
+[![Passive](https://img.shields.io/badge/mode-Parallel%20%26%20Passive-9cf?style=for-the-badge)](https://github.com/dxn1-UBUNTU/raio)
+
+</div>
+
+---
 
 A single Bash script that runs the full recon grind **in parallel**:
 
@@ -14,10 +33,10 @@ timestamped **Loot Folder** plus a Markdown report.
 ## Usage
 
 ```bash
-chmod +x recon.sh
-./recon.sh example.com
-./recon.sh 8.8.8.8 --skip-nmap
-./recon.sh example.com --wordlist /path/to/wordlist.txt
+chmod +x raio.sh
+./raio.sh example.com
+./raio.sh 8.8.8.8 --skip-nmap
+./raio.sh example.com --wordlist /path/to/wordlist.txt
 ```
 
 ### Options
