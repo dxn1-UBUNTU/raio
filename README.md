@@ -1,5 +1,8 @@
 <div align="center">
 
+![RAIO](https://img.shields.io/badge/RAIO-Recon%20All%20In%20One-00d9ff?style=for-the-badge&logo=shields&logoColor=white)
+[![Version](https://img.shields.io/badge/version-1.0.0-00d9ff?style=for-the-badge)](https://github.com/dxn1-UBUNTU/raio/releases)
+
 # RAIO
 
 ### *Recon All In One*
