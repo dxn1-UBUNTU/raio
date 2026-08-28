@@ -50,6 +50,10 @@ chmod +x raio.sh
 ./raio.sh --gui
 ./raio.sh example.com --gui 9000
 
+# The GUI has a live dashboard, a searchable Dependencies manager
+# (install nmap/whois/dig/ffuf/... with one click), and will prompt
+# to download a missing tool before running the module that needs it.
+
 # Machine-readable output
 ./raio.sh example.com --json
 ```
