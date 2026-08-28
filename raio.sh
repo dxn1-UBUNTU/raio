@@ -124,10 +124,21 @@ fetch() {
 # ---------------------------------------------------------------------------
 # Interactive TUI (arrow keys + space to toggle, enter to run)
 # ---------------------------------------------------------------------------
+mod_avail() {
+  case "$1" in
+    whois) have whois || have curl || have wget ;;
+    dns)   have dig ;;
+    subs)  have subfinder || have amass || have curl || have wget ;;
+    nmap)  have nmap ;;
+    fuzz)  have ffuf || have feroxbuster ;;
+  esac
+}
+
 tui() {
   tput civis
   local mods=(whois dns subs nmap fuzz)
   local labels=("WHOIS" "DNS" "SUBS" "NMAP" "FUZZ")
+  local tools=("whois / rdap" "dig" "subfinder / crt.sh" "nmap" "ffuf / ferox")
   local sel=(1 1 1 1 1)
   local idx=0 k rest
   clear; banner "interactive"
@@ -135,17 +146,28 @@ tui() {
   read -r -p "${W}target (domain or IP): ${RST}" TARGET
   [[ -z "$TARGET" ]] && { tput cnorm; echo "${R}no target${RST}"; exit 2; }
   TARGET="$(echo "$TARGET" | sed -E 's#^https?://##; s#/.*##')"
+  local PW=$(tput cols)
   while true; do
-    clear; banner "interactive"
-    echo; echo "  ${W}target:${RST} ${BD}$TARGET${RST}"
-    echo; echo "  ${D}↑/↓ move   space toggle   enter run   q quit${RST}"
+    clear
     echo
+    echo "  ${C_CYAN}${BD}╔══════════════════════════════════════════════════════════════════════╗${RST}"
+    echo "  ║  ${BD}RAIO · RECON ALL IN ONE${RST}  ${D}— the only command after finding an IP${RST}      ║"
+    echo "  ${C_CYAN}${BD}╚══════════════════════════════════════════════════════════════════════╝${RST}"
+    echo
+    echo "  ${W}target${RST}   ${BD}$TARGET${RST}"
+    echo
+    echo "  ${D}MODULES   ${C_CYAN}↑/↓${RST}${D} move · ${C_CYAN}space${RST}${D} toggle · ${C_CYAN}enter${RST}${D} run · ${C_CYAN}q${RST}${D} quit${RST}"
+    local nsel=0
     for i in "${!mods[@]}"; do
-      local mark=" " chk="${Y}[ ]${RST}"
+      local m="${mods[$i]}" l="${labels[$i]}" t="${tools[$i]}"
+      local mark=" " chk="${Y}[ ]${RST}" inst="${R}missing${RST}"
       (( i==idx )) && mark="${C_CYAN}▶${RST}"
-      (( sel[i] )) && chk="${G}[✔]${RST}"
-      printf "    %s %s %s\n" "$mark" "$chk" "${BD}${labels[$i]}${RST}"
+      (( sel[i] )) && chk="${G}[✔]${RST}" && ((nsel++))
+      if mod_avail "$m"; then inst="${G}ready${RST}"; else inst="${Y}not installed${RST}"; fi
+      printf "    %s %s %-7s %-18s %s\n" "$mark" "$chk" "${BD}$l${RST}" "$t" "$inst"
     done
+    echo
+    echo "  ${D}selected: ${W}$nsel/5${RST}${D} · enter to launch recon${RST}"
     read -rsn1 k
     case "$k" in
       $'\x1b')
