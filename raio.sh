@@ -201,6 +201,11 @@ launch_gui() {
     python3 -m pip install --user flask >/dev/null 2>&1 || pip install flask >/dev/null 2>&1 \
       || { echo "${R}could not install flask (need: pip install flask)${RST}"; exit 1; }
   fi
+  # Prompt for the sudo password in the TERMINAL (reliable), so the GUI can
+  # pipe it via `sudo -S` when installing tools. Avoids browser mistypes.
+  if [[ -z "$SUDO_PASS" ]] && [[ -t 0 ]]; then
+    read -s -r -p "${W}sudo password (used by the GUI to install tools): ${RST}" SUDO_PASS; echo
+  fi
   echo "${G}${BD}RAIO GUI → http://localhost:${PORT}${RST}  (Ctrl+C to stop)"
   local extra=""
   [[ -n "$SUDO_PASS" ]] && extra="--sudo-pass $SUDO_PASS"
