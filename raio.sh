@@ -68,6 +68,7 @@ SKIP_NMAP=0; SKIP_WHOIS=0; SKIP_DNS=0; SKIP_SUBS=0; SKIP_FUZZ=0
 WORDLIST=""
 TIMEOUT=600
 DO_TUI=0; DO_GUI=0; DO_JSON=0; GUI_PORT=8080; STATUS_FILE=""
+SUDO_PASS="${RAIO_SUDO_PASS:-}"
 RAIO_DONE=0
 STATE_DIR="/tmp/recon_$$"; mkdir -p "$STATE_DIR"
 # Modules communicate status (0/1/2) + summary via files (subshells can't
@@ -92,6 +93,7 @@ while [[ $# -gt 0 ]]; do
     --tui) DO_TUI=1 ;;
     --gui) DO_GUI=1 ;;
     --gui=*) DO_GUI=1; GUI_PORT="${1#--gui=}" ;;
+    --sudo-pass) SUDO_PASS="$2"; shift ;;
     --json) DO_JSON=1 ;;
     --status-file) STATUS_FILE="$2"; shift ;;
     -w|--wordlist) WORDLIST="$2"; shift ;;
@@ -200,7 +202,9 @@ launch_gui() {
       || { echo "${R}could not install flask (need: pip install flask)${RST}"; exit 1; }
   fi
   echo "${G}${BD}RAIO GUI → http://localhost:${PORT}${RST}  (Ctrl+C to stop)"
-  exec python3 "$DIR/raio_gui.py" --port "$PORT" --script "$SCRIPT"
+  local extra=""
+  [[ -n "$SUDO_PASS" ]] && extra="--sudo-pass $SUDO_PASS"
+  exec python3 "$DIR/raio_gui.py" --port "$PORT" --script "$SCRIPT" $extra
 }
 
 # ---------------------------------------------------------------------------

@@ -320,7 +320,7 @@ def install():
     spec = TOOLS.get(tool)
     if not spec:
         return jsonify({"error": "unknown tool"}), 400
-    pw = request.form.get("password", "")
+    pw = request.form.get("password", "") or os.environ.get("RAIO_SUDO_PASS", "")
     iid = uuid.uuid4().hex
     logf = "/tmp/raio_install_%s.log" % iid
     INSTALLS[iid] = {"running": True, "log": logf, "code": None}
@@ -436,8 +436,11 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument("--port", default=8080, type=int)
     p.add_argument("--script", required=True)
+    p.add_argument("--sudo-pass", default="", help="sudo password (falls back to RAIO_SUDO_PASS env)")
     a = p.parse_args()
     SCRIPT = a.script
+    if a.sudo_pass:
+        os.environ["RAIO_SUDO_PASS"] = a.sudo_pass
     app.run(host="0.0.0.0", port=a.port, debug=False)
 
 
