@@ -154,6 +154,17 @@ INDEX_HTML = r"""
     </div>
   </div>
 </div>
+<div class="modal-bg" id="pwModalBg">
+  <div class="modal">
+    <h3>Sudo password</h3>
+    <p>Enter your sudo password to install tools (sent to localhost only).</p>
+    <input type="password" id="sudoPw" style="width:100%;padding:10px;background:#0a0e13;border:1px solid var(--line);border-radius:6px;color:var(--txt)">
+    <div class="acts">
+      <button class="ghost" onclick="closePw()">Cancel</button>
+      <button onclick="confirmPw()">OK</button>
+    </div>
+  </div>
+</div>
 <div id="toast"></div>
 
 <script>
@@ -161,6 +172,12 @@ const $=s=>document.querySelector(s);
 let PENDING_MODULES=[];
 
 function toast(msg){const t=$('#toast');t.textContent=msg;t.style.display='block';setTimeout(()=>t.style.display='none',3500);}
+
+let _sudoPW="";
+let _pwCb=null;
+function askPassword(cb){_pwCb=cb;$('#sudoPw').value='';$('#pwModalBg').style.display='flex';}
+function closePw(){$('#pwModalBg').style.display='none';const c=_pwCb;_pwCb=null;if(c)c(null);}
+function confirmPw(){_sudoPW=$('#sudoPw').value;$('#pwModalBg').style.display='none';const c=_pwCb;_pwCb=null;if(c)c(_sudoPW);}
 
 async function refreshDeps(){
   const d=await (await fetch('/api/deps')).json();
@@ -180,15 +197,19 @@ function renderDeps(){
   $('#deps').innerHTML=html||'<p style="color:var(--dim)">no tools match.</p>';
 }
 async function installTool(name){
-  const r=await fetch('/install',{method:'POST',body:new URLSearchParams({tool:name})});
-  const j=await r.json(); if(j.error){toast(j.error);return;}
-  toast('installing '+name+'…');
-  while(true){
-    const s=await (await fetch('/install/'+j.id)).json();
-    if(!s.running){ toast(s.exit===0?name+' installed ✔':'install failed (see terminal)'); break; }
-    await new Promise(r=>setTimeout(r,1500));
-  }
-  refreshDeps();
+  const go=async (pw)=>{
+    const r=await fetch('/install',{method:'POST',body:new URLSearchParams({tool:name,password:pw||''})});
+    const j=await r.json(); if(j.error){toast(j.error);return;}
+    toast('installing '+name+'…');
+    while(true){
+      const s=await (await fetch('/install/'+j.id)).json();
+      if(!s.running){ toast(s.exit===0?name+' installed ✔':'install failed (bad password?)'); break; }
+      await new Promise(r=>setTimeout(r,1500));
+    }
+    refreshDeps();
+  };
+  if(_sudoPW) return go(_sudoPW);
+  askPassword(pw=>{ if(pw===null) return; go(pw); });
 }
 
 $('#reconForm').addEventListener('submit',async e=>{
@@ -213,21 +234,25 @@ function closeModal(){$('#modalBg').style.display='none';}
 
 async function installAndRun(){
   closeModal();
-  const d=await (await fetch('/api/deps')).json();
-  const installed=new Set(d.filter(t=>t.installed).map(t=>t.name));
-  const needed=[];
-  for(const m of PENDING_MODULES){
-    const tools={'whois':['whois'],'dns':['dig'],'subs':['subfinder','amass'],
-                 'nmap':['nmap'],'fuzz':['ffuf','feroxbuster']}[m];
-    tools.forEach(t=>{ if(!installed.has(t)) needed.push(t); });
-  }
-  for(const t of [...new Set(needed)]){
-    const r=await fetch('/install',{method:'POST',body:new URLSearchParams({tool:t})});
-    const j=await r.json(); if(j.error)continue;
-    while(true){const s=await (await fetch('/install/'+j.id)).json(); if(!s.running)break; await new Promise(r=>setTimeout(r,1500));}
-  }
-  toast('tools ready — launching recon');
-  doRun();
+  const doIt=async ()=>{
+    const d=await (await fetch('/api/deps')).json();
+    const installed=new Set(d.filter(t=>t.installed).map(t=>t.name));
+    const needed=[];
+    for(const m of PENDING_MODULES){
+      const tools={'whois':['whois'],'dns':['dig'],'subs':['subfinder','amass'],
+                   'nmap':['nmap'],'fuzz':['ffuf','feroxbuster']}[m];
+      tools.forEach(t=>{ if(!installed.has(t)) needed.push(t); });
+    }
+    for(const t of [...new Set(needed)]){
+      const r=await fetch('/install',{method:'POST',body:new URLSearchParams({tool:t,password:_sudoPW})});
+      const j=await r.json(); if(j.error)continue;
+      while(true){const s=await (await fetch('/install/'+j.id)).json(); if(!s.running)break; await new Promise(r=>setTimeout(r,1500));}
+    }
+    toast('tools ready — launching recon');
+    doRun();
+  };
+  if(_sudoPW) return doIt();
+  askPassword(pw=>{ if(pw===null) return; doIt(); });
 }
 
 async function doRun(){
@@ -295,22 +320,40 @@ def install():
     spec = TOOLS.get(tool)
     if not spec:
         return jsonify({"error": "unknown tool"}), 400
+    pw = request.form.get("password", "")
     iid = uuid.uuid4().hex
     logf = "/tmp/raio_install_%s.log" % iid
     INSTALLS[iid] = {"running": True, "log": logf, "code": None}
-    runner = "pkexec" if shutil.which("pkexec") else "sudo"
-    cmd = [runner, "apt-get", "install", "-y", spec["pkg"]]
-    if not shutil.which(runner):
-        cmd = ["apt-get", "install", "-y", spec["pkg"]]
 
-    def worker():
-        try:
-            with open(logf, "w") as f:
-                p = subprocess.Popen(cmd, stdout=f, stderr=subprocess.STDOUT)
-                INSTALLS[iid]["code"] = p.wait()
-        except Exception as e:
-            open(logf, "a").write(str(e))
-        INSTALLS[iid]["running"] = False
+    if pw:
+        # password supplied by the web UI -> feed sudo via stdin
+        cmd = ["sudo", "-S", "apt-get", "install", "-y", spec["pkg"]]
+
+        def worker():
+            try:
+                with open(logf, "w") as f:
+                    p = subprocess.Popen(cmd, stdin=subprocess.PIPE,
+                                         stdout=f, stderr=subprocess.STDOUT)
+                    p.communicate((pw + "\n").encode())
+                    INSTALLS[iid]["code"] = p.returncode
+            except Exception as e:
+                open(logf, "a").write(str(e))
+            INSTALLS[iid]["running"] = False
+    else:
+        # no password: try a graphical/agent prompt
+        runner = "pkexec" if shutil.which("pkexec") else "sudo"
+        cmd = [runner, "apt-get", "install", "-y", spec["pkg"]]
+        if not shutil.which(runner):
+            cmd = ["apt-get", "install", "-y", spec["pkg"]]
+
+        def worker():
+            try:
+                with open(logf, "w") as f:
+                    p = subprocess.Popen(cmd, stdout=f, stderr=subprocess.STDOUT)
+                    INSTALLS[iid]["code"] = p.wait()
+            except Exception as e:
+                open(logf, "a").write(str(e))
+            INSTALLS[iid]["running"] = False
 
     threading.Thread(target=worker, daemon=True).start()
     return jsonify({"id": iid})
