@@ -37,15 +37,31 @@ timestamped **Loot Folder** plus a Markdown report.
 
 ```bash
 chmod +x raio.sh
+
+# Interactive TUI (arrow keys + space to toggle modules, enter to run)
+./raio.sh
+
+# One-shot recon + terminal dashboard
 ./raio.sh example.com
 ./raio.sh 8.8.8.8 --skip-nmap
 ./raio.sh example.com --wordlist /path/to/wordlist.txt
+
+# Web GUI (Flask) — opens http://localhost:8080
+./raio.sh --gui
+./raio.sh example.com --gui 9000
+
+# Machine-readable output
+./raio.sh example.com --json
 ```
 
 ### Options
 
 | Flag | Meaning |
 |------|---------|
+| `--tui` | force the interactive terminal UI |
+| `--gui [port]` | launch the Flask web GUI (auto-installs flask if missing) |
+| `--json` | print a JSON report to stdout |
+| `--status-file FILE` | write live JSON progress (used by the GUI) |
 | `--skip-nmap` `--skip-whois` `--skip-dns` `--skip-subs` `--skip-fuzz` | disable a module |
 | `-w, --wordlist FILE` | wordlist for content discovery |
 | `-t, --timeout SEC` | per-module timeout (default 600) |
